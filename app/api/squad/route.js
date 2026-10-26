@@ -2,10 +2,18 @@ import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase-server'
 import { getManager } from '@/lib/manager'
 import { QUOTA, SQUAD_SIZE, BUDGET, STARTERS } from '@/lib/config'
+import { hasPaidEntry, PAYMENT_REQUIRED } from '@/lib/payments'
 
 export async function POST(request) {
   const manager = await getManager()
   if (!manager) return NextResponse.json({ error: 'Not signed in' }, { status: 401 })
+  try {
+    if (PAYMENT_REQUIRED && !(await hasPaidEntry(manager.id))) {
+      return NextResponse.json({ error: 'Pay the league entry fee before creating a squad' }, { status: 403 })
+    }
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
 
   const body = await request.json().catch(() => ({}))
   const playerIds = Array.from(new Set(body.playerIds || []))

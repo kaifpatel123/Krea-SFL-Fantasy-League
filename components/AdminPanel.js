@@ -2,8 +2,9 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import AdminPayments from '@/components/AdminPayments'
 
-const TABS = ['Results', 'Player Stats', 'Gameweeks']
+const TABS = ['Results', 'Player Stats', 'Gameweeks', 'Payments']
 const NUM_FIELDS = [
   ['minutes_played', 'Played', 'Tick if they played'],
   ['goals', 'G'],
@@ -42,12 +43,12 @@ export default function AdminPanel({ gameweeks, players, fixtures, teams, stats 
           Log out of admin
         </button>
       </div>
-      <div className="flex border border-white/10 mb-8 w-fit">
+      <div className="flex border border-white/10 mb-8 w-fit max-w-full overflow-x-auto">
         {TABS.map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-4 py-2 font-display tracking-wider text-sm ${
+            className={`px-4 py-2 font-display tracking-wider text-sm shrink-0 ${
               tab === t ? 'bg-gold text-ink' : 'text-chalk/70 hover:text-gold'
             }`}
           >
@@ -58,6 +59,7 @@ export default function AdminPanel({ gameweeks, players, fixtures, teams, stats 
       {tab === 'Results' && <Results fixtures={fixtures} teams={teams} />}
       {tab === 'Player Stats' && <StatsEditor gameweeks={gameweeks} players={players} stats={stats} teams={teams} />}
       {tab === 'Gameweeks' && <Gameweeks gameweeks={gameweeks} />}
+      {tab === 'Payments' && <AdminPayments />}
     </div>
   )
 }

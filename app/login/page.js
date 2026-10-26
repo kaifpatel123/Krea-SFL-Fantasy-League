@@ -46,7 +46,9 @@ function Login() {
   return (
     <div className="pt-12 max-w-md">
       <h1 className="font-display text-4xl text-chalk mb-3">SIGN IN</h1>
-      <p className="text-chalk/60 mb-6">Use your Krea Google account (@{ALLOWED_EMAIL_DOMAINS[0]}) to join SFL Fantasy.</p>
+      <p className="text-chalk/60 mb-6">
+        Use your Krea Google account (@{ALLOWED_EMAIL_DOMAINS.join(' or @')}) to join SFL Fantasy.
+      </p>
       <button
         onClick={signIn}
         disabled={busy}
