@@ -38,9 +38,9 @@ export async function GET(request) {
       'amount_inr',
       'currency',
       'status',
-      'razorpay_order_id',
-      'razorpay_payment_id',
-      'razorpay_refund_id',
+      'submitted_email',
+      'transaction_reference',
+      'proof_url',
       'created_at',
       'updated_at',
     ]

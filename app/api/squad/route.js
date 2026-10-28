@@ -12,7 +12,7 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Pay the league entry fee before creating a squad' }, { status: 403 })
     }
   } catch (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: error.message || 'Could not check entry payment' }, { status: 500 })
   }
 
   const body = await request.json().catch(() => ({}))

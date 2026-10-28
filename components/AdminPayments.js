@@ -38,9 +38,8 @@ export default function AdminPayments() {
       return [
         payment.manager_name,
         payment.manager_email,
-        payment.razorpay_order_id,
-        payment.razorpay_payment_id,
-        payment.razorpay_refund_id,
+        payment.submitted_email,
+        payment.transaction_reference,
       ].some((value) => String(value || '').toLowerCase().includes(query))
     })
   }, [payments, search, statusFilter])
@@ -63,20 +62,22 @@ export default function AdminPayments() {
     }
   }
 
-  async function refund(payment) {
-    if (!window.confirm(`Issue a full refund of ₹${(payment.amount_paise / 100).toFixed(0)} to ${payment.manager_name || payment.manager_email}?`)) {
-      return
-    }
+  async function review(payment, action) {
+    const message = action === 'approve'
+      ? `Approve the ₹${(payment.amount_paise / 100).toFixed(0)} payment from ${payment.manager_name || payment.manager_email}?`
+      : `Reject the payment submission from ${payment.manager_name || payment.manager_email}?`
+    if (!window.confirm(message)) return
+
     setBusy(true)
     setMessage('')
     try {
-      await request('/api/admin/payments/refund', {
+      await request('/api/admin/payments/review', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paymentId: payment.id }),
+        body: JSON.stringify({ paymentId: payment.id, action }),
       })
       await refresh()
-      setMessage('Refund requested. Access is suspended until the refund completes.')
+      setMessage(action === 'approve' ? 'Payment approved. Squad access is enabled.' : 'Payment submission rejected.')
     } catch (error) {
       setMessage(error.message)
     } finally {
@@ -122,7 +123,7 @@ export default function AdminPayments() {
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search manager, email, or payment ID"
+            placeholder="Search manager, email, or transaction reference"
             className="min-w-60 flex-1 bg-ink border border-white/20 px-3 py-2 text-chalk"
           />
           <select
@@ -130,7 +131,7 @@ export default function AdminPayments() {
             onChange={(event) => setStatusFilter(event.target.value)}
             className="bg-ink border border-white/20 px-3 py-2 text-chalk"
           >
-            {['all', 'pending', 'paid', 'refund_pending', 'refunded'].map((status) => (
+            {['all', 'pending', 'paid', 'rejected', 'refund_pending', 'refunded'].map((status) => (
               <option key={status} value={status}>{status.replace('_', ' ').toUpperCase()}</option>
             ))}
           </select>
@@ -142,7 +143,7 @@ export default function AdminPayments() {
                 <th className="p-3">Manager</th>
                 <th className="p-3">Amount</th>
                 <th className="p-3">Status</th>
-                <th className="p-3">Payment ID</th>
+                <th className="p-3">Proof / Reference</th>
                 <th className="p-3">Date</th>
                 <th className="p-3">Action</th>
               </tr>
@@ -157,20 +158,35 @@ export default function AdminPayments() {
                   <td className="p-3 text-chalk">₹{(payment.amount_paise / 100).toFixed(2)}</td>
                   <td className="p-3 text-gold">{payment.status.replace('_', ' ').toUpperCase()}</td>
                   <td className="p-3 text-chalk/60 text-xs break-all">
-                    {payment.razorpay_payment_id || payment.razorpay_order_id}
+                    <div>{payment.transaction_reference || '—'}</div>
+                    <div>{payment.submitted_email || payment.manager_email}</div>
+                    {payment.proof_url && (
+                      <a href={payment.proof_url} target="_blank" rel="noreferrer" className="text-gold underline">
+                        View payment proof
+                      </a>
+                    )}
                   </td>
                   <td className="p-3 text-chalk/60 whitespace-nowrap">
                     {new Date(payment.created_at).toLocaleString()}
                   </td>
                   <td className="p-3">
-                    {payment.status === 'paid' && (
-                      <button
-                        disabled={busy}
-                        onClick={() => refund(payment)}
-                        className="text-red-300 underline disabled:opacity-50"
-                      >
-                        Refund
-                      </button>
+                    {payment.status === 'pending' && (
+                      <div className="flex gap-3">
+                        <button
+                          disabled={busy}
+                          onClick={() => review(payment, 'approve')}
+                          className="text-gold underline disabled:opacity-50"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          disabled={busy}
+                          onClick={() => review(payment, 'reject')}
+                          className="text-red-300 underline disabled:opacity-50"
+                        >
+                          Reject
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>

@@ -6,7 +6,7 @@ import SquadBuilder from '@/components/SquadBuilder'
 import { pointsForPlayerStat } from '@/lib/scoring'
 import ManagerSetup from '@/components/ManagerSetup'
 import EntryPayment from '@/components/EntryPayment'
-import { getEntryFeePaise, hasPaidEntry, PAYMENT_REQUIRED } from '@/lib/payments'
+import { getEntryFeePaise, getLatestEntryPayment, hasPaidEntry, PAYMENT_REQUIRED } from '@/lib/payments'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,14 +22,18 @@ export default async function SquadPage() {
   if (!manager.display_name) return <ManagerSetup signedIn />
 
   if (PAYMENT_REQUIRED && !(await hasPaidEntry(manager.id))) {
-    const amountPaise = await getEntryFeePaise()
-    const paymentConfigured = !!(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET)
+    const [amountPaise, payment] = await Promise.all([
+      getEntryFeePaise(),
+      getLatestEntryPayment(manager.id),
+    ])
     return (
       <div>
-        <EntryPayment amountPaise={amountPaise} />
-        {!paymentConfigured && (
-          <p className="text-red-400 text-sm mt-4">Payments are not configured yet. Please contact the league admin.</p>
-        )}
+        <EntryPayment
+          amountPaise={amountPaise}
+          payment={payment}
+          formUrl={process.env.NEXT_PUBLIC_GOOGLE_FORM_URL || ''}
+          qrUrl={process.env.NEXT_PUBLIC_PAYMENT_QR_URL || ''}
+        />
       </div>
     )
   }
