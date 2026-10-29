@@ -15,7 +15,7 @@ export default async function StatsPage({ searchParams }) {
   if (league === 'MSFL') {
     const [{ data: stats }, { data: players }] = await Promise.all([
       supabase.from('player_stats').select('player_id, goals, assists, yellow_cards, red_cards, motm, minutes_played'),
-      supabase.from('players').select('id, name, position, auction_team'),
+      supabase.from('players').select('id, name, position, auction_team').eq('league', 'MSFL'),
     ])
     const pmap = {}
     ;(players || []).forEach((p) => (pmap[p.id] = p))
@@ -43,15 +43,47 @@ export default async function StatsPage({ searchParams }) {
     })
     rows = Object.values(agg)
   } else {
-    const { data: ws } = await supabase.from('wsfl_stats').select('*')
-    rows = (ws || []).map((s) => ({
-      name: s.name,
-      club: clubOf[s.team] || s.team,
-      goals: s.goals || 0,
-      assists: s.assists || 0,
-      yellow: s.yellow_cards || 0,
-      red: s.red_cards || 0,
-    }))
+    const [{ data: stats }, { data: players }, { data: legacyStats }] = await Promise.all([
+      supabase.from('player_stats').select('player_id, goals, assists, yellow_cards, red_cards, minutes_played'),
+      supabase.from('players').select('id, name, position, auction_team').eq('league', 'WSFL'),
+      supabase.from('wsfl_stats').select('*'),
+    ])
+    const playerMap = {}
+    ;(players || []).forEach((p) => (playerMap[p.id] = p))
+    const agg = {}
+    ;(stats || []).forEach((s) => {
+      const p = playerMap[s.player_id]
+      if (!p) return
+      const r = (agg[s.player_id] = agg[s.player_id] || {
+        name: p.name,
+        position: p.position,
+        club: clubOf[p.auction_team] || p.auction_team,
+        goals: 0,
+        assists: 0,
+        yellow: 0,
+        red: 0,
+        apps: 0,
+      })
+      r.goals += s.goals || 0
+      r.assists += s.assists || 0
+      r.yellow += s.yellow_cards || 0
+      r.red += s.red_cards || 0
+      r.apps += s.minutes_played > 0 ? 1 : 0
+    })
+    const seenNames = new Set(Object.values(agg).map((r) => r.name.toLowerCase()))
+    rows = [
+      ...Object.values(agg),
+      ...(legacyStats || [])
+        .filter((s) => !seenNames.has(String(s.name || '').toLowerCase()))
+        .map((s) => ({
+          name: s.name,
+          club: clubOf[s.team] || s.team,
+          goals: s.goals || 0,
+          assists: s.assists || 0,
+          yellow: s.yellow_cards || 0,
+          red: s.red_cards || 0,
+        })),
+    ]
   }
 
   const top = (key) =>

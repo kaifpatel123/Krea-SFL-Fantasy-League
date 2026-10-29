@@ -16,6 +16,8 @@ export async function POST(request) {
   }
 
   const body = await request.json().catch(() => ({}))
+  const league = body.league === 'WSFL' ? 'WSFL' : body.league === 'MSFL' ? 'MSFL' : null
+  if (!league) return NextResponse.json({ error: 'Choose MSFL or WSFL' }, { status: 400 })
   const playerIds = Array.from(new Set(body.playerIds || []))
   const { captainId, viceCaptainId } = body
   const starterIds = Array.from(new Set(body.starterIds || []))
@@ -40,6 +42,7 @@ export async function POST(request) {
     .select('id')
     .eq('profile_id', manager.id)
     .eq('gameweek_id', gameweek.id)
+    .eq('league', league)
     .maybeSingle()
   if (already) {
     return NextResponse.json({ error: `Your squad for ${gameweek.label} is already saved and locked.` }, { status: 400 })
@@ -49,7 +52,11 @@ export async function POST(request) {
     return NextResponse.json({ error: `Pick exactly ${SQUAD_SIZE} players` }, { status: 400 })
   }
 
-  const { data: players } = await admin.from('players').select('id, position, fantasy_price').in('id', playerIds)
+  const { data: players } = await admin
+    .from('players')
+    .select('id, position, fantasy_price')
+    .in('id', playerIds)
+    .eq('league', league)
   if (!players || players.length !== SQUAD_SIZE) {
     return NextResponse.json({ error: 'Some players were not found' }, { status: 400 })
   }
@@ -90,6 +97,7 @@ export async function POST(request) {
     .from('squads')
     .select('id, gameweek_id, gameweeks(match_date)')
     .eq('profile_id', manager.id)
+    .eq('league', league)
   const previous = (mySquads || [])
     .filter((s) => s.gameweek_id !== gameweek.id && s.gameweeks?.match_date < gameweek.match_date)
     .sort((a, b) => (b.gameweeks?.match_date || '').localeCompare(a.gameweeks?.match_date || ''))[0]
@@ -104,6 +112,7 @@ export async function POST(request) {
     .insert({
       profile_id: manager.id,
       gameweek_id: gameweek.id,
+      league,
       captain_id: captainId,
       vice_captain_id: viceCaptainId,
       transfers_used: transfersUsed,

@@ -1,12 +1,14 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase-server'
+import LeagueTabs from '@/components/LeagueTabs'
 
 export const dynamic = 'force-dynamic'
 
 // A manager's squads, shown only for gameweeks that have been scored.
 // Squads for open or in-progress gameweeks stay hidden from everyone else.
-export default async function ManagerPage({ params }) {
+export default async function ManagerPage({ params, searchParams }) {
+  const league = searchParams?.league === 'WSFL' ? 'WSFL' : 'MSFL'
   const admin = createAdminClient()
 
   const { data: profile } = await admin.from('profiles').select('id, display_name').eq('id', params.id).maybeSingle()
@@ -27,6 +29,7 @@ export default async function ManagerPage({ params }) {
       .from('squads')
       .select('id, gameweek_id, captain_id, vice_captain_id, transfers_used')
       .eq('profile_id', profile.id)
+      .eq('league', league)
       .in('gameweek_id', scoredIds)
     squads = data || []
   }
@@ -51,10 +54,16 @@ export default async function ManagerPage({ params }) {
 
   return (
     <div className="pt-6">
-      <Link href="/leaderboard" className="text-chalk/50 text-sm hover:text-gold">
+      <Link href={`/leaderboard?league=${league}`} className="text-chalk/50 text-sm hover:text-gold">
         ← Fantasy table
       </Link>
       <h1 className="font-display text-4xl text-chalk mt-2 mb-2">{(profile.display_name || '').toUpperCase()}</h1>
+      <p className="text-gold text-xs font-display tracking-widest mb-3">
+        {league === 'MSFL' ? "MEN'S FANTASY" : "WOMEN'S FANTASY"}
+      </p>
+      <div className="mb-5">
+        <LeagueTabs league={league} base={`/manager/${profile.id}`} />
+      </div>
       <p className="text-chalk/60 mb-8">Squads appear here once a gameweek has been scored.</p>
 
       {(gameweeks || []).filter((g) => squads.some((s) => s.gameweek_id === g.id)).length === 0 && (

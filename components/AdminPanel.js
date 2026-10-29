@@ -187,10 +187,11 @@ function StatsEditor({ gameweeks, players, stats, teams }) {
     return m
   }, [players])
 
+  const [league, setLeague] = useState('MSFL')
   const [gwId, setGwId] = useState(gameweeks[0]?.id || null)
-  const rowsFor = (id) =>
+  const rowsFor = (id, selectedLeague = league) =>
     stats
-      .filter((s) => s.gameweek_id === id)
+      .filter((s) => s.gameweek_id === id && playerMap[s.player_id]?.league === selectedLeague)
       .map((s) => ({ ...s, minutes_played: s.minutes_played > 0 ? 1 : 0 }))
   const [rows, setRows] = useState(() => rowsFor(gameweeks[0]?.id))
   const [addTeam, setAddTeam] = useState('ALL')
@@ -200,6 +201,13 @@ function StatsEditor({ gameweeks, players, stats, teams }) {
   function pickGw(id) {
     setGwId(id)
     setRows(rowsFor(id))
+    setMsg(null)
+  }
+
+  function pickLeague(nextLeague) {
+    setLeague(nextLeague)
+    setRows(rowsFor(gwId, nextLeague))
+    setAddTeam('ALL')
     setMsg(null)
   }
 
@@ -218,7 +226,7 @@ function StatsEditor({ gameweeks, players, stats, teams }) {
     setSaving(true)
     setMsg(null)
     try {
-      const res = await call('/api/admin/stats', 'POST', { gameweekId: gwId, rows })
+      const res = await call('/api/admin/stats', 'POST', { gameweekId: gwId, league, rows })
       setMsg({ ok: true, text: `Saved ${res.saved} player rows.` })
       router.refresh()
     } catch (e) {
@@ -227,11 +235,25 @@ function StatsEditor({ gameweeks, players, stats, teams }) {
     setSaving(false)
   }
 
-  const options = players.filter((p) => addTeam === 'ALL' || p.auction_team === addTeam)
-  const teamKeys = teams.filter((t) => t.league === 'MSFL').map((t) => t.key)
+  const leaguePlayers = players.filter((p) => p.league === league)
+  const options = leaguePlayers.filter((p) => addTeam === 'ALL' || p.auction_team === addTeam)
+  const teamKeys = teams.filter((t) => t.league === league).map((t) => t.key)
 
   return (
     <div>
+      <div className="flex gap-2 mb-4">
+        {['MSFL', 'WSFL'].map((value) => (
+          <button
+            key={value}
+            onClick={() => pickLeague(value)}
+            className={`px-3 py-1.5 text-xs font-display tracking-wider border ${
+              league === value ? 'bg-gold text-ink border-gold' : 'border-white/15 text-chalk/70'
+            }`}
+          >
+            {value}
+          </button>
+        ))}
+      </div>
       <div className="flex flex-wrap gap-2 mb-6">
         {gameweeks.map((g) => (
           <button
@@ -404,8 +426,9 @@ function Gameweeks({ gameweeks }) {
   return (
     <div>
       <p className="text-chalk/60 text-sm mb-4">
-        Managers pick squads for the earliest unlocked gameweek{openGw ? ` (currently ${openGw.label})` : ''}. Lock it
-        before the first kickoff, enter stats after the matches, then press Score.
+        Both leagues use the same gameweek schedule. Managers pick squads for the earliest unlocked gameweek
+        {openGw ? ` (currently ${openGw.label})` : ''}. Lock it before kickoff, enter stats for both leagues after
+        their matches, then press Score to score both leagues.
       </p>
       <div className="border border-white/10 divide-y divide-white/5">
         {gameweeks.map((g) => (

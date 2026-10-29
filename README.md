@@ -6,9 +6,10 @@ Fantasy league for the SIAS Football League. Next.js 14 (App Router) + Supabase 
 1. `npm install`
 2. Copy `.env.example` to `.env.local` and fill in the keys (ask Vishant for the Supabase keys and admin passcode).
 3. Run the payment-table SQL in `supabase/schema.md` in the Supabase SQL editor.
-4. Configure the Google Form URL, public payment QR image URL, and a random form webhook secret
+4. For fantasy data setup, run the three player/league SQL scripts listed in order in `supabase/schema.md`.
+5. Configure the Google Form URL, public payment QR image URL, and a random form webhook secret
    in `.env.local` and in the deployment platform.
-5. `npm run dev`
+6. `npm run dev`
 
 ## Structure
 - `app/`: pages (home, squad picker, league table, stats, fantasy leaderboard, admin, login) and API routes in `app/api/`
@@ -18,6 +19,7 @@ Fantasy league for the SIAS Football League. Next.js 14 (App Router) + Supabase 
 - `lib/manager.js`: current-user and admin checks
 - `lib/payments.js`: manual entry-payment access checks
 - `supabase/schema.md`: database tables
+- `supabase/enable_wsfl_fantasy.sql` and the two player import scripts: separate MSFL/WSFL squads and rosters
 
 ## Notes
 - Krea Google sign-in is required by default. Set `NEXT_PUBLIC_TEST_MODE=true` only for local testing;

@@ -14,6 +14,7 @@ const OUTFIELD_STARTERS = 5 // + the goalkeeper = 6 starters; 2 outfield subs
 export default function SquadBuilder({
   players,
   gameweek,
+  league,
   manager,
   existingSquad,
   existingPicks,
@@ -135,6 +136,7 @@ export default function SquadBuilder({
         captainId,
         viceCaptainId: viceId,
         gameweekId: gameweek.id,
+        league,
       }),
     })
     const json = await res.json().catch(() => ({}))

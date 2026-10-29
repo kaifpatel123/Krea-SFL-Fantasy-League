@@ -17,8 +17,10 @@ const FIELDS = [
 // Replace all player stats for one gameweek with the rows sent.
 export async function POST(request) {
   if (!(await isAdmin())) return NextResponse.json({ error: 'Admins only' }, { status: 403 })
-  const { gameweekId, rows } = await request.json().catch(() => ({}))
-  if (!gameweekId || !Array.isArray(rows)) return NextResponse.json({ error: 'Bad request' }, { status: 400 })
+  const { gameweekId, league, rows } = await request.json().catch(() => ({}))
+  if (!gameweekId || !['MSFL', 'WSFL'].includes(league) || !Array.isArray(rows)) {
+    return NextResponse.json({ error: 'Bad request' }, { status: 400 })
+  }
 
   const clean = rows
     .filter((r) => r.player_id)
@@ -32,12 +34,21 @@ export async function POST(request) {
     })
 
   const admin = createAdminClient()
+  const { data: leaguePlayers, error: playersErr } = await admin.from('players').select('id').eq('league', league)
+  if (playersErr) return NextResponse.json({ error: playersErr.message }, { status: 500 })
+  const leaguePlayerIds = (leaguePlayers || []).map((p) => p.id)
+  const validPlayerIds = new Set(leaguePlayerIds)
+  if (clean.some((row) => !validPlayerIds.has(row.player_id))) {
+    return NextResponse.json({ error: `Stats can only be saved for ${league} players` }, { status: 400 })
+  }
   const keep = clean.map((r) => r.player_id)
 
-  let del = admin.from('player_stats').delete().eq('gameweek_id', gameweekId)
-  if (keep.length) del = del.not('player_id', 'in', `(${keep.join(',')})`)
-  const { error: delErr } = await del
-  if (delErr) return NextResponse.json({ error: delErr.message }, { status: 500 })
+  if (leaguePlayerIds.length) {
+    let del = admin.from('player_stats').delete().eq('gameweek_id', gameweekId).in('player_id', leaguePlayerIds)
+    if (keep.length) del = del.not('player_id', 'in', `(${keep.join(',')})`)
+    const { error: delErr } = await del
+    if (delErr) return NextResponse.json({ error: delErr.message }, { status: 500 })
+  }
 
   if (clean.length) {
     const { error } = await admin.from('player_stats').upsert(clean, { onConflict: 'gameweek_id,player_id' })

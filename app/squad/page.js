@@ -7,10 +7,12 @@ import { pointsForPlayerStat } from '@/lib/scoring'
 import ManagerSetup from '@/components/ManagerSetup'
 import EntryPayment from '@/components/EntryPayment'
 import { getEntryFeePaise, getLatestEntryPayment, hasPaidEntry, PAYMENT_REQUIRED } from '@/lib/payments'
+import LeagueTabs from '@/components/LeagueTabs'
 
 export const dynamic = 'force-dynamic'
 
-export default async function SquadPage() {
+export default async function SquadPage({ searchParams }) {
+  const league = searchParams?.league === 'WSFL' ? 'WSFL' : 'MSFL'
   const manager = await getManager()
 
   if (!manager) {
@@ -41,7 +43,7 @@ export default async function SquadPage() {
   const supabase = createAdminClient()
 
   const [{ data: players }, { data: teams }, { data: gameweek }] = await Promise.all([
-    supabase.from('players').select('*').order('fantasy_price', { ascending: false }),
+    supabase.from('players').select('*').eq('league', league).order('fantasy_price', { ascending: false }),
     supabase.from('teams').select('*'),
     supabase
       .from('gameweeks')
@@ -55,7 +57,7 @@ export default async function SquadPage() {
   // Season stats per player, from scored gameweeks only, with opponent and result for each gameweek.
   const [{ data: scoredGws }, { data: fixtures }] = await Promise.all([
     supabase.from('gameweeks').select('id, label, match_date').eq('is_scored', true).order('match_date', { ascending: true }),
-    supabase.from('fixtures').select('*').eq('league', 'MSFL'),
+    supabase.from('fixtures').select('*').eq('league', league),
   ])
   const scoredIds = (scoredGws || []).map((g) => g.id)
   const { data: statRows } = scoredIds.length
@@ -150,6 +152,7 @@ export default async function SquadPage() {
     .from('squads')
     .select('*, gameweeks(match_date)')
     .eq('profile_id', manager.id)
+    .eq('league', league)
 
   const current = (mySquads || []).find((s) => s.gameweek_id === gameweek.id)
   const previous = (mySquads || [])
@@ -170,16 +173,22 @@ export default async function SquadPage() {
   }
 
   return (
-    <SquadBuilder
-      players={withClub}
-      gameweek={gameweek}
-      manager={{ id: manager.id, name: manager.display_name }}
-      existingSquad={existingSquad}
-      existingPicks={existingPicks}
-      savedForThisGw={!!current}
-      budget={Number(manager.budget) || BUDGET}
-      testMode={TEST_MODE}
-      baselineIds={baselineIds}
-    />
+    <div>
+      <div className="pt-4 mb-6">
+        <LeagueTabs league={league} base="/squad" />
+      </div>
+      <SquadBuilder
+        players={withClub}
+        gameweek={gameweek}
+        league={league}
+        manager={{ id: manager.id, name: manager.display_name }}
+        existingSquad={existingSquad}
+        existingPicks={existingPicks}
+        savedForThisGw={!!current}
+        budget={Number(manager.budget) || BUDGET}
+        testMode={TEST_MODE}
+        baselineIds={baselineIds}
+      />
+    </div>
   )
 }

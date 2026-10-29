@@ -17,7 +17,7 @@ export default async function Home() {
       supabase.from('fixtures').select('*').eq('league', 'MSFL'),
       supabase.from('teams').select('*'),
       supabase.from('profiles').select('id, display_name, email'),
-      supabase.from('squads').select('id, profile_id'),
+      supabase.from('squads').select('id, profile_id').eq('league', 'MSFL'),
       supabase.from('squad_points').select('squad_id, points'),
     ])
 
@@ -44,7 +44,7 @@ export default async function Home() {
   const top = Object.values(totals)
     .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name))
     .slice(0, 5)
-  const anyPoints = (points || []).length > 0
+  const anyPoints = (points || []).some((sp) => squadOwner[sp.squad_id])
 
   return (
     <div>
@@ -181,8 +181,8 @@ export default async function Home() {
       {/* Fantasy table preview */}
       <section className="pt-20">
         <div className="flex items-end justify-between gap-4 mb-6">
-          <h2 className="font-display text-5xl md:text-6xl text-chalk">FANTASY TABLE</h2>
-          <Link href="/leaderboard" className="text-gold underline underline-offset-4 hover:no-underline shrink-0">
+          <h2 className="font-display text-5xl md:text-6xl text-chalk">MSFL FANTASY TABLE</h2>
+          <Link href="/leaderboard?league=MSFL" className="text-gold underline underline-offset-4 hover:no-underline shrink-0">
             See everyone
           </Link>
         </div>
@@ -195,7 +195,7 @@ export default async function Home() {
             {top.map((m, i) => (
               <li key={m.id}>
                 <Link
-                  href={`/manager/${m.id}`}
+                  href={`/manager/${m.id}?league=MSFL`}
                   className={`flex items-center gap-4 px-5 py-4 hover:bg-white/5 ${i === 0 ? 'bg-gold/10' : ''}`}
                 >
                   <span className={`font-display text-3xl w-8 scoreboard-num ${i === 0 ? 'text-gold' : 'text-chalk/40'}`}>{i + 1}</span>
