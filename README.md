@@ -30,8 +30,10 @@ Fantasy league for the SIAS Football League. Next.js 14 (App Router) + Supabase 
   Google Form. The linked spreadsheet forwards each response to the app for admin review.
 - `REQUIRE_PAYMENT` defaults to `true`; set it to `false` only when payment gating is intentionally
   disabled. Production should also keep `NEXT_PUBLIC_TEST_MODE=false` so only Krea accounts can sign in.
-- `NEXT_PUBLIC_GOOGLE_FORM_URL` is the player-facing form link. `NEXT_PUBLIC_PAYMENT_QR_URL` must
-  point to a publicly readable image of the official club/student-body UPI QR.
+- `NEXT_PUBLIC_GOOGLE_FORM_URL` is the player-facing form link. The entry payment page shows
+  `public/payment-qr.jpeg`; replace that file with the official UPI QR and deploy the change.
+  `NEXT_PUBLIC_UPI_ID` and `NEXT_PUBLIC_UPI_PAYEE_NAME` configure the public UPI details shown
+  alongside it. Set these `NEXT_PUBLIC_` values in Vercel and redeploy after changing them.
 - `GOOGLE_FORM_WEBHOOK_SECRET` must be a long random value. Keep it private; do not use a
   `NEXT_PUBLIC_` variable for it.
 - Server routes use the Supabase service role key, so all writes go through the API routes.

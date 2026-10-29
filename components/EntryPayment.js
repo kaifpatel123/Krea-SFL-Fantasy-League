@@ -1,6 +1,6 @@
 'use client'
 
-export default function EntryPayment({ amountPaise, payment, formUrl, qrUrl }) {
+export default function EntryPayment({ amountPaise, payment, formUrl, qrUrl, upiId, payeeName }) {
   return (
     <div className="pt-12 max-w-lg">
       <p className="font-display text-gold text-sm tracking-[0.3em] mb-3">LEAGUE ENTRY</p>
@@ -16,6 +16,20 @@ export default function EntryPayment({ amountPaise, payment, formUrl, qrUrl }) {
           alt="Official league entry payment QR code"
           className="w-56 h-56 object-contain bg-white p-2 mb-5"
         />
+      )}
+      {(payeeName || upiId) && (
+        <div className="border border-white/10 p-4 mb-5 text-sm">
+          {payeeName && (
+            <p className="text-chalk">
+              Payee: <span className="text-gold">{payeeName}</span>
+            </p>
+          )}
+          {upiId && (
+            <p className="text-chalk mt-1">
+              UPI ID: <span className="text-gold">{upiId}</span>
+            </p>
+          )}
+        </div>
       )}
 
       {payment?.status === 'pending' ? (

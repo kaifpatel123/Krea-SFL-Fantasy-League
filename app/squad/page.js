@@ -34,7 +34,9 @@ export default async function SquadPage({ searchParams }) {
           amountPaise={amountPaise}
           payment={payment}
           formUrl={process.env.NEXT_PUBLIC_GOOGLE_FORM_URL || ''}
-          qrUrl={process.env.NEXT_PUBLIC_PAYMENT_QR_URL || ''}
+          qrUrl="/payment-qr.jpeg"
+          upiId={process.env.NEXT_PUBLIC_UPI_ID || ''}
+          payeeName={process.env.NEXT_PUBLIC_UPI_PAYEE_NAME || ''}
         />
       </div>
     )
