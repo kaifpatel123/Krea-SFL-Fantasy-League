@@ -3,8 +3,9 @@
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AdminPayments from '@/components/AdminPayments'
+import AdminData from '@/components/AdminData'
 
-const TABS = ['Results', 'Player Stats', 'Gameweeks', 'Payments']
+const TABS = ['Results', 'Player Stats', 'Manage Data', 'Gameweeks', 'Payments']
 const NUM_FIELDS = [
   ['minutes_played', 'Played', 'Tick if they played'],
   ['goals', 'G'],
@@ -58,6 +59,7 @@ export default function AdminPanel({ gameweeks, players, fixtures, teams, stats 
       </div>
       {tab === 'Results' && <Results fixtures={fixtures} teams={teams} />}
       {tab === 'Player Stats' && <StatsEditor gameweeks={gameweeks} players={players} stats={stats} teams={teams} />}
+      {tab === 'Manage Data' && <AdminData gameweeks={gameweeks} fixtures={fixtures} players={players} teams={teams} />}
       {tab === 'Gameweeks' && <Gameweeks gameweeks={gameweeks} />}
       {tab === 'Payments' && <AdminPayments />}
     </div>

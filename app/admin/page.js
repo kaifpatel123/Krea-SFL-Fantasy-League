@@ -12,9 +12,9 @@ export default async function AdminPage() {
   const [{ data: gameweeks }, { data: players }, { data: fixtures }, { data: teams }, { data: stats }] =
     await Promise.all([
       supabase.from('gameweeks').select('*').order('match_date', { ascending: true }),
-      supabase.from('players').select('id, name, position, auction_team, league').order('name'),
+      supabase.from('players').select('*').order('name'),
       supabase.from('fixtures').select('*').order('match_date', { ascending: true }).order('id', { ascending: true }),
-      supabase.from('teams').select('*'),
+      supabase.from('teams').select('*').order('league').order('club'),
       supabase.from('player_stats').select('*'),
     ])
 

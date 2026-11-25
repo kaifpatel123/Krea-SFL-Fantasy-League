@@ -40,6 +40,19 @@ A fantasy football web app for the SIAS Football League (SFL). Managers pick rea
 
 League tables, fixtures, and statistics are publicly viewable. Creating a fantasy squad requires an account and, by default, an approved entry payment.
 
+## Admin operations
+
+Authorized staff can use the site's `/admin` page; they do not need database or code access.
+
+- **Manage Data → Weeks** creates gameweeks and updates their dates. New gameweeks start locked.
+- **Manage Data → Fixtures** adds, edits, or removes fixtures for either league.
+- **Manage Data → Players / Teams** maintains roster details, prices, team keys, and display names.
+- **Results** records match scores. **Player Stats** records appearances and match statistics. Save the complete set of player rows for that league and gameweek; omitted rows are removed from that gameweek's stats.
+- **Gameweeks** locks or unlocks a week and calculates fantasy squad points from the saved player stats. Scoring locks the week; use **Re-score** after correcting saved stats.
+- **Payments** lets staff review manual payment submissions.
+
+Deletes are blocked when a record is linked to fixtures, player stats, saved squads, or scores. Lock an empty gameweek before deleting it. Keep staff access limited to trusted operators.
+
 ## Technology
 
 - **Next.js 14 App Router** and **React 18** for server-rendered pages, client-side interactions, and API routes.
