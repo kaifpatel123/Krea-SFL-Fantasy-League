@@ -64,22 +64,73 @@ export default function AdminPayments() {
 
   async function review(payment, action) {
     const message = action === 'approve'
-      ? `Approve the ₹${(payment.amount_paise / 100).toFixed(0)} payment from ${payment.manager_name || payment.manager_email}?`
-      : `Reject the payment submission from ${payment.manager_name || payment.manager_email}?`
+      ? `Approve the ₹${(payment.amount_paise / 100).toFixed(0)} payment from ${payment.manager_name || payment.manager_email}? An approval email will also be sent.`
+      : action === 'reject'
+        ? `Reject the payment submission from ${payment.manager_name || payment.manager_email}?`
+        : `Send the payment approval email to ${payment.manager_name || payment.manager_email}?`
     if (!window.confirm(message)) return
 
     setBusy(true)
     setMessage('')
     try {
-      await request('/api/admin/payments/review', {
+      const result = await request('/api/admin/payments/review', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ paymentId: payment.id, action }),
       })
       await refresh()
-      setMessage(action === 'approve' ? 'Payment approved. Squad access is enabled.' : 'Payment submission rejected.')
+      if (action === 'approve') {
+        setMessage(result.emailSent
+          ? result.emailError
+            ? `Payment approved and email sent, but status tracking failed: ${result.emailError}`
+            : 'Payment approved, and the confirmation email was sent.'
+          : `Payment approved, but the confirmation email was not sent: ${result.emailError || 'Unknown email error'}`)
+      } else if (action === 'reject') {
+        setMessage('Payment submission rejected.')
+      } else {
+        setMessage(result.emailSent
+          ? result.emailError
+            ? `Approval email sent, but status tracking failed: ${result.emailError}`
+            : 'Approval email sent.'
+          : `Approval email was not sent: ${result.emailError || 'Unknown email error'}`)
+      }
     } catch (error) {
       setMessage(error.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function notifyExistingPayments() {
+    if (!window.confirm('Send approval emails to previously approved managers with no prior email attempt? This sends in batches; failed attempts can be retried from each payment record. Rejected payments are never emailed.')) return
+
+    setBusy(true)
+    setMessage('Starting existing payment email notifications…')
+    let sent = 0
+    let failed = 0
+    let trackingWarnings = 0
+    try {
+      let result
+      do {
+        result = await request('/api/admin/payments/notify-existing', { method: 'POST' })
+        sent += result.sent
+        failed += result.failed
+        trackingWarnings += result.trackingWarnings
+        setMessage(`Sending existing approval emails: ${sent} sent, ${failed} failed, ${result.remaining} not yet processed.`)
+        if (result.processed === 0 && result.remaining > 0) {
+          throw new Error('No payments were processed although eligible records remain. Check the email configuration and try again.')
+        }
+      } while (result.remaining > 0)
+
+      await refresh()
+      setMessage(`Existing approval email run complete: ${sent} sent, ${failed} failed, ${trackingWarnings} sent without saved status. Retry failures from their payment records; verify Resend for sends with status-tracking warnings.`)
+    } catch (error) {
+      try {
+        await refresh()
+        setMessage(error.message)
+      } catch (refreshError) {
+        setMessage(`${error.message} Payment list refresh also failed: ${refreshError.message}`)
+      }
     } finally {
       setBusy(false)
     }
@@ -112,12 +163,22 @@ export default function AdminPayments() {
       <section>
         <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
           <h2 className="font-display text-xl text-gold">PAYMENT RECORDS</h2>
-          <a
-            href="/api/admin/payments?export=csv"
-            className="text-chalk/70 text-sm underline hover:text-gold"
-          >
-            Export CSV
-          </a>
+          <div className="flex flex-wrap items-center gap-4">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={notifyExistingPayments}
+              className="text-gold text-sm underline disabled:opacity-50"
+            >
+              Email previously approved
+            </button>
+            <a
+              href="/api/admin/payments?export=csv"
+              className="text-chalk/70 text-sm underline hover:text-gold"
+            >
+              Export CSV
+            </a>
+          </div>
         </div>
         <div className="flex flex-wrap gap-3 mb-4">
           <input
@@ -168,6 +229,19 @@ export default function AdminPayments() {
                   </td>
                   <td className="p-3 text-chalk/60 whitespace-nowrap">
                     {new Date(payment.created_at).toLocaleString()}
+                    {payment.status === 'paid' && (
+                      <div className="mt-1 text-xs">
+                        {payment.approval_email_sent_at ? (
+                          <span className="text-green-300">Approval email sent</span>
+                        ) : payment.approval_email_error ? (
+                          <span className="text-red-300">Email failed: {payment.approval_email_error}</span>
+                        ) : payment.approval_email_attempted_at ? (
+                          <span className="text-chalk/50">Email processing</span>
+                        ) : (
+                          <span className="text-chalk/50">Email not sent</span>
+                        )}
+                      </div>
+                    )}
                   </td>
                   <td className="p-3">
                     {payment.status === 'pending' && (
@@ -187,6 +261,15 @@ export default function AdminPayments() {
                           Reject
                         </button>
                       </div>
+                    )}
+                    {payment.status === 'paid' && !payment.approval_email_sent_at && (
+                      <button
+                        disabled={busy || (payment.approval_email_attempted_at && !payment.approval_email_error)}
+                        onClick={() => review(payment, 'retry-email')}
+                        className="text-gold underline disabled:opacity-50"
+                      >
+                        {payment.approval_email_error ? 'Retry email' : 'Send email'}
+                      </button>
                     )}
                   </td>
                 </tr>

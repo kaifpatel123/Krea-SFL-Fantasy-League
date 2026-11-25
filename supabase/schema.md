@@ -83,6 +83,12 @@ on an existing table are left unused and nullable for compatibility; old pending
 marked rejected by the migration. New form submissions are matched to an existing profile by
 the Krea email in the response and remain pending until an admin approves or rejects them.
 
+For approval email delivery and the one-time notification of existing paid records, also run
+[`payment_approval_email_notifications.sql`](./payment_approval_email_notifications.sql).
+It adds `approval_email_attempted_at`, `approval_email_sent_at`, and `approval_email_error`
+to `payments`. These fields track delivery attempts and retries; emails are sent by the server
+through Resend, not directly from the browser.
+
 ## Importing players
 
 To enable fantasy squads for both competitions, run these scripts in the Supabase SQL

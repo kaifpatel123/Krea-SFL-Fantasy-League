@@ -29,20 +29,39 @@ async function call(url, method, body) {
 
 export default function AdminPanel({ gameweeks, players, fixtures, teams, stats }) {
   const [tab, setTab] = useState('Results')
+  const [logoutError, setLogoutError] = useState('')
+  const [loggingOut, setLoggingOut] = useState(false)
   const router = useRouter()
 
   async function logout() {
-    await fetch('/api/admin/login', { method: 'DELETE' })
-    router.refresh()
+    setLoggingOut(true)
+    setLogoutError('')
+    try {
+      const response = await fetch('/api/admin/login', { method: 'DELETE' })
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(result.error || 'Could not log out')
+      router.replace('/admin')
+      router.refresh()
+    } catch (error) {
+      setLogoutError(error.message || 'Could not log out')
+      setLoggingOut(false)
+    }
   }
 
   return (
     <div className="pt-4">
       <div className="flex items-end justify-between flex-wrap gap-4 mb-6">
         <h1 className="font-display text-4xl text-chalk">ADMIN</h1>
-        <button onClick={logout} className="text-chalk/50 text-sm underline hover:text-gold">
-          Log out of admin
-        </button>
+        <div className="text-right">
+          <button
+            onClick={logout}
+            disabled={loggingOut}
+            className="text-chalk/50 text-sm underline hover:text-gold disabled:opacity-50"
+          >
+            {loggingOut ? 'Logging out...' : 'Log out of admin'}
+          </button>
+          {logoutError && <p role="alert" className="text-red-400 text-xs mt-1">{logoutError}</p>}
+        </div>
       </div>
       <div className="flex border border-white/10 mb-8 w-fit max-w-full overflow-x-auto">
         {TABS.map((t) => (

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { ADMIN_COOKIE } from '@/lib/manager'
+import { createClient } from '@/lib/supabase-server'
 
 export async function POST(request) {
   const { code } = await request.json().catch(() => ({}))
@@ -19,5 +20,8 @@ export async function POST(request) {
 
 export async function DELETE() {
   cookies().delete(ADMIN_COOKIE)
+  const supabase = await createClient()
+  const { error } = await supabase.auth.signOut()
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })
 }

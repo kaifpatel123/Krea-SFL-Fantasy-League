@@ -16,8 +16,9 @@ export default function PrivacyPage() {
       <h2 className="font-display text-2xl text-chalk mt-8 mb-2">HOW IT IS USED</h2>
       <p className="mb-4">
         Your email is used only to sign you in and to make sure only Krea students can join. Your team name, squads and points
-        are shown on the fantasy table and, once a gameweek is scored, on your manager page. We do not sell or share your data,
-        and we do not send marketing emails.
+        are shown on the fantasy table and, once a gameweek is scored, on your manager page. If you submit a payment, the SFL
+        admin team uses your account or submitted email to send a transactional message through our email delivery provider when
+        that payment is approved. We do not sell your data or send marketing emails.
       </p>
       <h2 className="font-display text-2xl text-chalk mt-8 mb-2">DELETING YOUR DATA</h2>
       <p className="mb-4">

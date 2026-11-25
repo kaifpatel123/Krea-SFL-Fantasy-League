@@ -168,16 +168,20 @@ export default function SquadBuilder({
     return null
   }
 
-  const market = players
-    .filter((p) => filterPos === 'ALL' || p.position === filterPos)
-    .filter((p) => filterClub === 'ALL' || p.club === filterClub)
-    .filter((p) => !search || p.name.toLowerCase().includes(search.toLowerCase()))
-    .sort((a, b) => {
-      if (sortBy === 'points') return (b.stats?.points || 0) - (a.stats?.points || 0)
-      if (sortBy === 'form') return (b.stats?.form || 0) - (a.stats?.form || 0)
-      if (sortBy === 'goals') return (b.stats?.goals || 0) + (b.stats?.assists || 0) - (a.stats?.goals || 0) - (a.stats?.assists || 0)
-      return Number(b.fantasy_price) - Number(a.fantasy_price)
-    })
+  const market = useMemo(
+    () =>
+      players
+        .filter((p) => filterPos === 'ALL' || p.position === filterPos)
+        .filter((p) => filterClub === 'ALL' || p.club === filterClub)
+        .filter((p) => !search || p.name.toLowerCase().includes(search.toLowerCase()))
+        .sort((a, b) => {
+          if (sortBy === 'points') return (b.stats?.points || 0) - (a.stats?.points || 0)
+          if (sortBy === 'form') return (b.stats?.form || 0) - (a.stats?.form || 0)
+          if (sortBy === 'goals') return (b.stats?.goals || 0) + (b.stats?.assists || 0) - (a.stats?.goals || 0) - (a.stats?.assists || 0)
+          return Number(b.fantasy_price) - Number(a.fantasy_price)
+        }),
+    [players, filterPos, filterClub, search, sortBy]
+  )
 
   return (
     <div className="pt-4">

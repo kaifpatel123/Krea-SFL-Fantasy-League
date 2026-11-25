@@ -49,7 +49,7 @@ Authorized staff can use the site's `/admin` page; they do not need database or 
 - **Manage Data → Players / Teams** maintains roster details, prices, team keys, and display names.
 - **Results** records match scores. **Player Stats** records appearances and match statistics. Save the complete set of player rows for that league and gameweek; omitted rows are removed from that gameweek's stats.
 - **Gameweeks** locks or unlocks a week and calculates fantasy squad points from the saved player stats. Scoring locks the week; use **Re-score** after correcting saved stats.
-- **Payments** lets staff review manual payment submissions.
+- **Payments** lets staff review manual payment submissions, send approval emails, retry failed emails, and notify previously approved managers in batches.
 
 Deletes are blocked when a record is linked to fixtures, player stats, saved squads, or scores. Lock an empty gameweek before deleting it. Keep staff access limited to trusted operators.
 
@@ -104,8 +104,22 @@ Deletes are blocked when a record is linked to fixtures, player stats, saved squ
 | `NEXT_PUBLIC_UPI_ID` | Optional | UPI ID shown on the entry payment screen. |
 | `NEXT_PUBLIC_UPI_PAYEE_NAME` | Optional | Payee name shown with the UPI details. |
 | `GOOGLE_FORM_WEBHOOK_SECRET` | For the form integration | Private bearer token shared with the Google Apps Script. Use a long random value and keep it secret. |
+| `RESEND_API_KEY` | For payment approval emails | Private API key for the Resend account. Configure it in Vercel and local `.env.local`; never expose it with a `NEXT_PUBLIC_` prefix. |
+| `PAYMENT_APPROVAL_FROM` | For payment approval emails | Verified sender identity, for example `SFL Fantasy <payments@your-verified-domain>`. |
 
 The public UPI QR image is `public/payment-qr.jpeg`. Replace it with the intended QR image before deployment if needed. Public `NEXT_PUBLIC_` values are included in the client bundle; do not put credentials or other secrets in them.
+
+### Payment approval emails
+
+The app sends a transactional confirmation email when an admin approves a payment. Rejected payments do not trigger email. Admins can also use **Payments → Email previously approved** to notify existing paid records that have not yet received an email; the action processes records in batches, and failed sends can be retried from each payment row.
+
+Before deploying this feature:
+
+1. Run [`supabase/payment_approval_email_notifications.sql`](supabase/payment_approval_email_notifications.sql) in the Supabase SQL Editor. The API requires these tracking columns to prevent accidental duplicate notifications.
+2. Create a Resend account, verify the sender domain, and set `RESEND_API_KEY` and `PAYMENT_APPROVAL_FROM` in Vercel's server-side environment variables. The selected sender is `SFL Fantasy <kaif_patel.sias24@krea.ac.in>`; use it only after `krea.ac.in` is verified in Resend, or choose an address on another verified domain.
+3. If using Resend locally, add the same settings to `.env.local`, then build and test an approval and a retry.
+
+The manager email already associated with the account is used as the recipient, with the submitted payment email as a fallback. The privacy notice explains this transactional use. The backfill action only selects approved payments that have not already been attempted; failed records are retried individually from the Payments table.
 
 ### Database and roster setup
 
