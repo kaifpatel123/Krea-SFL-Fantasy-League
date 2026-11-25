@@ -108,12 +108,12 @@ The import scripts can be run again to update roster details. The application's 
 
 ### Payment form integration
 
-When payments are enabled, configure the entry fee in the admin area and set the public Google Form and UPI details. The payment form should collect the manager's Krea email, transaction reference, and a Google Drive screenshot link. The manager must sign in and create a profile before submitting the form.
+When payments are enabled, configure the entry fee in the admin area and set the public Google Form and UPI details. The payment form should collect the manager's Krea email and a Google Drive screenshot link. A separate transaction reference is optional if it is visible in the screenshot. The manager must sign in and create a profile before submitting the form.
 
 To forward form submissions:
 
 1. Link the Google Form to a spreadsheet. In the spreadsheet, open **Extensions → Apps Script**.
-2. Add the script below. Change the question titles in `firstAnswer(...)` to match the exact titles in your form.
+2. Add the script below. Change the question titles in `firstAnswer(...)` to match the exact titles in your form. If the form has no separate transaction-reference question, leave `transactionReference` empty; admins can read it from the screenshot.
 3. In Apps Script **Project Settings → Script Properties**, set `PAYMENT_WEBHOOK_URL` to `https://<your-domain>/api/payments/google-form` and `PAYMENT_WEBHOOK_SECRET` to the same value as `GOOGLE_FORM_WEBHOOK_SECRET`.
 4. Run `installPaymentTrigger` once and grant the requested permissions.
 5. Submit a test response and confirm it appears in the admin Payments panel.
@@ -130,9 +130,9 @@ function forwardPaymentSubmission(event) {
       Authorization: `Bearer ${properties.getProperty('PAYMENT_WEBHOOK_SECRET')}`,
     },
     payload: JSON.stringify({
-      email: firstAnswer('Krea email'),
-      transactionReference: firstAnswer('Transaction reference'),
-      proofUrl: firstAnswer('Payment screenshot'),
+      email: firstAnswer('Krea Email id'),
+      transactionReference: '',
+      proofUrl: firstAnswer('Payment screenshot showing amount date time and reference number'),
     }),
     muteHttpExceptions: true,
   });

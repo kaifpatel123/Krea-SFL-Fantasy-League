@@ -43,8 +43,8 @@ export async function POST(request) {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json({ error: 'A valid Krea account email is required' }, { status: 400 })
   }
-  if (!transactionReference || transactionReference.length > 120) {
-    return NextResponse.json({ error: 'A transaction reference of at most 120 characters is required' }, { status: 400 })
+  if (transactionReference.length > 120) {
+    return NextResponse.json({ error: 'A transaction reference must be at most 120 characters' }, { status: 400 })
   }
   if (!isGoogleDriveUrl(proofUrl)) {
     return NextResponse.json({ error: 'A valid Google Drive screenshot link is required' }, { status: 400 })
@@ -62,15 +62,17 @@ export async function POST(request) {
       return NextResponse.json({ error: 'No league account matches the submitted Krea email' }, { status: 404 })
     }
 
-    const { data: duplicate, error: duplicateError } = await admin
-      .from('payments')
-      .select('profile_id')
-      .eq('transaction_reference', transactionReference)
-      .maybeSingle()
-    if (duplicateError) throw new Error(`Could not check transaction reference: ${duplicateError.message}`)
-    if (duplicate) {
-      if (duplicate.profile_id === profile.id) return NextResponse.json({ received: true, duplicate: true })
-      return NextResponse.json({ error: 'This transaction reference has already been submitted' }, { status: 409 })
+    if (transactionReference) {
+      const { data: duplicate, error: duplicateError } = await admin
+        .from('payments')
+        .select('profile_id')
+        .eq('transaction_reference', transactionReference)
+        .maybeSingle()
+      if (duplicateError) throw new Error(`Could not check transaction reference: ${duplicateError.message}`)
+      if (duplicate) {
+        if (duplicate.profile_id === profile.id) return NextResponse.json({ received: true, duplicate: true })
+        return NextResponse.json({ error: 'This transaction reference has already been submitted' }, { status: 409 })
+      }
     }
 
     const { data: paidPayment, error: paidError } = await admin
@@ -98,7 +100,7 @@ export async function POST(request) {
     const { error: insertError } = await admin.from('payments').insert({
       profile_id: profile.id,
       submitted_email: email,
-      transaction_reference: transactionReference,
+      transaction_reference: transactionReference || null,
       proof_url: proofUrl,
       amount_paise: await getEntryFeePaise(),
       currency: 'INR',
@@ -110,7 +112,6 @@ export async function POST(request) {
       }
       throw new Error(`Could not record payment submission: ${insertError.message}`)
     }
-
     return NextResponse.json({ received: true }, { status: 201 })
   } catch (error) {
     return NextResponse.json({ error: error.message || 'Could not process form submission' }, { status: 500 })
